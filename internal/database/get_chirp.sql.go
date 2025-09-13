@@ -11,6 +11,18 @@ import (
 	"github.com/google/uuid"
 )
 
+const deleteChirpById = `-- name: DeleteChirpById :one
+DELETE FROM chirps
+WHERE id = $1
+RETURNING id
+`
+
+func (q *Queries) DeleteChirpById(ctx context.Context, id uuid.UUID) (uuid.UUID, error) {
+	row := q.db.QueryRowContext(ctx, deleteChirpById, id)
+	err := row.Scan(&id)
+	return id, err
+}
+
 const getChirpById = `-- name: GetChirpById :one
 SELECT id, created_at, updated_at, body, user_id FROM chirps
 WHERE id = $1
@@ -18,6 +30,29 @@ WHERE id = $1
 
 func (q *Queries) GetChirpById(ctx context.Context, id uuid.UUID) (Chirp, error) {
 	row := q.db.QueryRowContext(ctx, getChirpById, id)
+	var i Chirp
+	err := row.Scan(
+		&i.ID,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+		&i.Body,
+		&i.UserID,
+	)
+	return i, err
+}
+
+const getChirpID_ByUserID = `-- name: GetChirpID_ByUserID :one
+SELECT id, created_at, updated_at, body, user_id FROM chirps
+WHERE user_id = $1 and id = $2
+`
+
+type GetChirpID_ByUserIDParams struct {
+	UserID uuid.UUID
+	ID     uuid.UUID
+}
+
+func (q *Queries) GetChirpID_ByUserID(ctx context.Context, arg GetChirpID_ByUserIDParams) (Chirp, error) {
+	row := q.db.QueryRowContext(ctx, getChirpID_ByUserID, arg.UserID, arg.ID)
 	var i Chirp
 	err := row.Scan(
 		&i.ID,
