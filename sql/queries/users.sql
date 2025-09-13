@@ -21,3 +21,9 @@ SET
 	hashed_password = $3
 WHERE id = $1
 RETURNING *;
+
+-- name: SetChrispRedByUserId :one
+UPDATE users
+SET is_chirpy_red = TRUE
+WHERE id = $1
+RETURNING id;
