@@ -4,10 +4,39 @@ import (
 	"net/http"
 
 	"github.com/google/uuid"
+	"main.go/internal/database"
 )
 
 func (cfg *apiConfig) handlerAllChirps(w http.ResponseWriter, r *http.Request) {
-	chirps, err := cfg.db.GetAllChirps(r.Context())
+	authorID := r.URL.Query().Get("author_id")
+	sortOrder := r.URL.Query().Get("sort")
+
+	if sortOrder != "desc" {
+		sortOrder = "asc"
+	}
+
+	var chirps []database.Chirp
+	var err error
+	if authorID != "" {
+		parsedUUID, err := uuid.Parse(authorID)
+		if err != nil {
+			respondWithError(w, http.StatusBadRequest, "Invalid author_id format", err)
+			return
+		}
+		if sortOrder == "desc" {
+			chirps, err = cfg.db.GetChirpsByAuthorIDDesc(r.Context(), parsedUUID)
+		} else {
+			chirps, err = cfg.db.GetChirpsByAuthorID(r.Context(), parsedUUID)
+		}
+		if err != nil {
+			respondWithError(w, http.StatusInternalServerError, "Couldn't retrieve chirps by author_id", err)
+			return
+		}
+	} else if sortOrder == "desc" {
+		chirps, err = cfg.db.GetAllChirpsDesc(r.Context())
+	} else {
+		chirps, err = cfg.db.GetAllChirps(r.Context())
+	}
 	if err != nil {
 		respondWithError(w, http.StatusInternalServerError, "Couldn't retrieve chirps", err)
 		return
